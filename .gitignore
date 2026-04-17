@@ -1,4 +1,3 @@
 ```
-# CI/CD
-.github/
+# Configuration and workflow files only - no build artifacts or dependencies detected
 ```
