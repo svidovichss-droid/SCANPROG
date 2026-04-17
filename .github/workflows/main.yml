@@ -29,9 +29,12 @@ jobs:
       - name: Download libdmtx x64
         run: |
           mkdir -p dlls/x64
-          Invoke-WebRequest -Uri "https://github.com/dmtx/libdmtx/releases/download/v0.7.8/libdmtx-0.7.8-win64.zip" -OutFile "libdmtx.zip"
-          Expand-Archive -Path "libdmtx.zip" -DestinationPath "libdmtx_temp"
-          Copy-Item "libdmtx_temp/*/libdmtx.dll" "dlls/x64/" -Force
+          # Скачиваем prebuilt libdmtx.dll из альтернативного источника
+          Invoke-WebRequest -Uri "https://github.com/zhmushan/libdmtx/raw/master/win64/libdmtx.dll" -OutFile "dlls/x64/libdmtx.dll"
+          if (-not (Test-Path "dlls/x64/libdmtx.dll") -or (Get-Item "dlls/x64/libdmtx.dll").Length -eq 0) {
+            Write-Error "Не удалось скачать libdmtx.dll x64"
+            exit 1
+          }
       
       - name: Build x64 executable
         run: |
@@ -63,9 +66,12 @@ jobs:
       - name: Download libdmtx x86
         run: |
           mkdir -p dlls/x86
-          Invoke-WebRequest -Uri "https://github.com/dmtx/libdmtx/releases/download/v0.7.8/libdmtx-0.7.8-win32.zip" -OutFile "libdmtx.zip"
-          Expand-Archive -Path "libdmtx.zip" -DestinationPath "libdmtx_temp"
-          Copy-Item "libdmtx_temp/*/libdmtx.dll" "dlls/x86/" -Force
+          # Скачиваем prebuilt libdmtx.dll из альтернативного источника
+          Invoke-WebRequest -Uri "https://github.com/zhmushan/libdmtx/raw/master/win32/libdmtx.dll" -OutFile "dlls/x86/libdmtx.dll"
+          if (-not (Test-Path "dlls/x86/libdmtx.dll") -or (Get-Item "dlls/x86/libdmtx.dll").Length -eq 0) {
+            Write-Error "Не удалось скачать libdmtx.dll x86"
+            exit 1
+          }
       
       - name: Build x86 executable
         run: |
