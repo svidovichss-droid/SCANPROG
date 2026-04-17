@@ -1,0 +1,111 @@
+name: Build Windows Executables
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Download libdmtx x64
+        run: |
+          mkdir -p dlls/x64
+          Invoke-WebRequest -Uri "https://github.com/dmtx/libdmtx/releases/download/v0.7.8/libdmtx-0.7.8-win64.zip" -OutFile "libdmtx.zip"
+          Expand-Archive -Path "libdmtx.zip" -DestinationPath "libdmtx_temp"
+          Copy-Item "libdmtx_temp/libdmtx.dll" "dlls/x64/"
+      
+      - name: Build x64 executable
+        run: |
+          pyinstaller main.spec --distpath ./dist/x64
+      
+      - name: Upload x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DataMatrix-Scanner-x64
+          path: dist/x64/*
+
+  build-x86:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11 x86
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x86'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Download libdmtx x86
+        run: |
+          mkdir -p dlls/x86
+          Invoke-WebRequest -Uri "https://github.com/dmtx/libdmtx/releases/download/v0.7.8/libdmtx-0.7.8-win32.zip" -OutFile "libdmtx.zip"
+          Expand-Archive -Path "libdmtx.zip" -DestinationPath "libdmtx_temp"
+          Copy-Item "libdmtx_temp/libdmtx.dll" "dlls/x86/"
+      
+      - name: Build x86 executable
+        run: |
+          pyinstaller main.spec --distpath ./dist/x86
+      
+      - name: Upload x86 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DataMatrix-Scanner-x86
+          path: dist/x86/*
+
+  release:
+    needs: [build-x64, build-x86]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DataMatrix-Scanner-x64
+          path: ./release/x64
+      
+      - uses: actions/download-artifact@v4
+        with:
+          name: DataMatrix-Scanner-x86
+          path: ./release/x86
+      
+      - name: Create archives
+        run: |
+          cd release
+          zip -r DataMatrix-Scanner-x64.zip x64/
+          zip -r DataMatrix-Scanner-x86.zip x86/
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/DataMatrix-Scanner-x64.zip
+            release/DataMatrix-Scanner-x86.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
